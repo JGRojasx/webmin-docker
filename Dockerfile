@@ -10,6 +10,7 @@ RUN	rm /etc/apt/apt.conf.d/docker-gzip-indexes && \
 	apt-transport-https \
 	git \
 	curl \
+	vim \
 	webmin \
 	&& rm -rf /var/lib/apt/lists/*
 
