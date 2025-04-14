@@ -1,23 +1,38 @@
-FROM	debian:buster
+FROM debian:bookworm
 
-RUN	rm /etc/apt/apt.conf.d/docker-gzip-indexes && \
-	apt-get update -y && \
-	DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y ca-certificates wget nano procps gnupg1 && \
-	echo deb https://download.webmin.com/download/repository sarge contrib >> /etc/apt/sources.list && \
-	 cd /tmp && wget https://download.webmin.com/jcameron-key.asc && apt-key add jcameron-key.asc && \
-	apt-get update -y && \
-	DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
-	apt-transport-https \
-	git \
-	curl \
-	vim \
-	webmin \
-	&& rm -rf /var/lib/apt/lists/*
+LABEL maintainer="Webmin Docker Maintainer"
+LABEL version="1.0"
+LABEL description="Webmin Docker Container"
 
-RUN	echo 'root:admin' | chpasswd
+# Variables de entorno
+ENV DEBIAN_FRONTEND=noninteractive
 
-COPY	entrypoint.sh /
+# Crear usuario no-root
+RUN useradd -r -s /bin/false webmin
 
-EXPOSE	10000
+# Copiar scripts
+COPY entrypoint.sh /entrypoint.sh
+COPY webmin-setup-repo.sh /webmin-setup-repo.sh
+COPY generate-password.sh /generate-password.sh
+RUN chmod +x /entrypoint.sh /webmin-setup-repo.sh /generate-password.sh
 
-CMD [ "bash", "/entrypoint.sh", "-D" ]
+# Instalación de dependencias y Webmin
+RUN apt-get update -y \
+    && touch /etc/apt/sources.list \
+    && /webmin-setup-repo.sh --force \
+    && apt-get install --no-install-recommends webmin -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Configurar volúmenes
+VOLUME ["/etc/webmin", "/var/webmin"]
+
+
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD curl -f http://localhost:10000/ || exit 1
+
+EXPOSE 10000
+
+CMD ["/entrypoint.sh"]

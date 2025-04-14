@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  webmin:
+    image: ${IMAGE_NAME}
+    build:
+      context: .
+      args:
+        WEBMIN_VERSION: ${WEBMIN_VERSION:-2.105}
+    container_name: webmin
+    restart: unless-stopped
+    ports:
+      - "10000:10000"
+    environment:
+      - TZ=America/Caracas
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:10000/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    # Volúmenes opcionales - descomentar si se desea persistencia
+    # volumes:
+    #   - webmin_config:/etc/webmin
+    #   - webmin_data:/var/webmin
+
+# Volúmenes opcionales - descomentar si se desea persistencia
+# volumes:
+#   webmin_config:
+#   webmin_data:
