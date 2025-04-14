@@ -5,8 +5,6 @@ services:
     image: ${IMAGE_NAME}
     build:
       context: .
-      args:
-        WEBMIN_VERSION: ${WEBMIN_VERSION:-2.105}
     container_name: webmin
     restart: unless-stopped
     ports:

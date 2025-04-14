@@ -27,18 +27,12 @@ git clone https://github.com/tu-usuario/webmin-docker.git
 cd webmin-docker
 ```
 
-2. Configurar variables de entorno (opcional):
-```bash
-echo "WEBMIN_VERSION=2.105" > .env
-echo "IMAGE_NAME=jgrojasx/webmin:latest" >> .env
-```
-
-3. Iniciar el contenedor:
+2. Iniciar el contenedor:
 ```bash
 docker-compose up -d
 ```
 
-4. Acceder a Webmin:
+3. Acceder a Webmin:
 ```
 https://localhost:10000
 ```
@@ -55,8 +49,8 @@ docker run -d \
 
 ## Variables de Entorno
 
-- `WEBMIN_VERSION`: Versión de Webmin a instalar (por defecto: 2.105)
-- `IMAGE_NAME`: Nombre de la imagen Docker (por defecto: jgrojasx/webmin:latest)
+Las siguientes variables de entorno están disponibles en el archivo `docker-compose.yml`:
+
 - `TZ`: Zona horaria (por defecto: America/Caracas)
 
 ## Persistencia de Datos (Opcional)
