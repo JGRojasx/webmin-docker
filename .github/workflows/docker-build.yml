@@ -20,22 +20,13 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     outputs:
-      tags: ${{ steps.meta.outputs.tags }}
-      labels: ${{ steps.meta.outputs.labels }}
+      is_master: ${{ github.ref == 'refs/heads/master' }}
+      sha: ${{ github.sha }}
+      ref_name: ${{ github.ref_name }}
     steps:
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Set outputs
         id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}
-          flavor: |
-            latest=auto
-          tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
-            type=raw,value={{branch}}-{{sha}},enable=${{ github.ref != 'refs/heads/master' }}
-            type=sha,format=long
+        run: echo "Metadata prepared"
 
   # Job para construir y publicar la imagen
   build:
@@ -58,16 +49,24 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ needs.prepare.outputs.is_master }}
+            type=raw,value=${{ needs.prepare.outputs.sha }}
+            type=raw,value=${{ needs.prepare.outputs.ref_name }}-${{ needs.prepare.outputs.sha }},enable=${{ !needs.prepare.outputs.is_master }}
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-            ${{ github.ref == 'refs/heads/master' && format('{0}/{1}:latest', secrets.DOCKER_HUB_USERNAME, env.IMAGE_NAME) || format('{0}/{1}:{2}-{3}', secrets.DOCKER_HUB_USERNAME, env.IMAGE_NAME, github.ref_name, github.sha) }}
-          labels: ${{ needs.prepare.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -79,7 +78,7 @@ jobs:
     steps:
       - name: Test AMD64 container
         run: |
-          TAG=${{ github.sha }}
+          TAG=${{ needs.prepare.outputs.sha }}
           docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${TAG}
           docker run -d --name test-webmin-amd64 -p 10000:10000 ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${TAG}
           sleep 30
@@ -98,7 +97,7 @@ jobs:
 
       - name: Test ARM64 container
         run: |
-          TAG=${{ github.sha }}
+          TAG=${{ needs.prepare.outputs.sha }}
           docker pull --platform linux/arm64 ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${TAG}
           docker run --platform linux/arm64 -d --name test-webmin-arm64 -p 10001:10000 ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${TAG}
           sleep 30
