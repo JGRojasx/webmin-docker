@@ -23,7 +23,7 @@ Este proyecto proporciona una imagen Docker para Webmin, una interfaz web para l
 
 1. Clonar el repositorio:
 ```bash
-git clone https://github.com/tu-usuario/webmin-docker.git
+git clone https://github.com/JGRojasx/webmin-docker.git
 cd webmin-docker
 ```
 
